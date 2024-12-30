@@ -1,0 +1,54 @@
+version: "3"
+
+vars:
+  ROOT:
+    sh: git rev-parse --show-toplevel
+
+tasks:
+  init:
+    desc: Configure synapse homeserver with PKL
+    silent: true
+    cmds:
+      - pkl eval pkl/matrix.net/Homeserver.pkl -f yaml -o deploy/conf/synapse/homeserver.yaml
+    env:
+      MATRIX_CLIENT_NAME: sonr.id
+      MATRIX_SERVER_NAME: sonr.id
+      MATRIX_SERVER_URL: http://localhost:8008
+      MATRIX_SLIDING_SYNC_PROXY: http://localhost:8008
+      MATRIX_PSQL_CONN: postgresql://matrixhs_user:matrixhs_password123@localhost:5432/sonr
+      MATRIX_REGISTRATION_SHARED_SECRET: secret
+      MATRIX_ENABLE_RECATCHA: false
+      MATRIX_RECATCHA_PUBLIC_KEY: ""
+      MATRIX_RECATCHA_PRIVATE_KEY: ""
+      MATRIX_RECATCHA_BYPASS_SECRET: ""
+
+  build:
+    desc: Build all matrix docker images
+    cmds:
+      - task: docker-build-push
+        vars:
+          DOCKER_FILE: deploy/matrixhs/server.Dockerfile
+          DOCKER_IMAGE: onsonr/synapse
+      - task: docker-build-push
+        vars:
+          DOCKER_FILE: deploy/matrixhs/hooks.Dockerfile
+          DOCKER_IMAGE: onsonr/hookshot
+      - task: docker-build-push
+        vars:
+          DOCKER_FILE: deploy/matrixhs/sync.Dockerfile
+          DOCKER_IMAGE: onsonr/sliding-sync
+      - task: docker-build-push
+        vars:
+          DOCKER_FILE: deploy/matrixhs/web.Dockerfile
+          DOCKER_IMAGE: onsonr/element-web
+    silent: true
+
+  docker-build-push:
+    internal: true
+    vars:
+      required: [DOCKER_FILE, DOCKER_IMAGE]
+    cmds:
+      - docker build -t {{.DOCKER_IMAGE}}:latest -f {{.DOCKER_FILE}} .
+      - docker build -t {{.DOCKER_IMAGE}}:{{.COMMIT}} -f {{.DOCKER_FILE}} .
+      - docker push {{.DOCKER_IMAGE}}:latest
+      - docker push {{.DOCKER_IMAGE}}:{{.COMMIT}}
