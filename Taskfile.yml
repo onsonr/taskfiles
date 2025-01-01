@@ -3,6 +3,12 @@
 version: '3'
 
 includes:
+  deps:
+    taskfile: ./taskfiles/deps.yml
+  gen:
+    taskfile: ./taskfiles/gen.yml
+  issue:
+    taskfile: ./taskfiles/ghpm.yml
   hway:
     taskfile: ./taskfiles/hway.yml
   ipfs:
