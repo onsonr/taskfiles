@@ -4,32 +4,19 @@ version: '3'
 
 includes:
   hway:
-    taskfile: ./Hway.yml
+    taskfile: ./taskfiles/hway.yml
   ipfs:
-    taskfile: ./IPFS.yml
+    taskfile: ./taskfiles/ipfs.yml
   postgres:
-    taskfile: ./Postgres.yml
+    taskfile: ./taskfiles/postgres.yml
   sonrd:
-    taskfile: ./Sonrd.yml
+    taskfile: ./taskfiles/sonrd.yml
   synapse:
-    taskfile: ./Synapse.yml
+    taskfile: ./taskfiles/synapse.yml
   tigerbeetle:
-    taskfile: ./TigerBeetle.yml
+    taskfile: ./taskfiles/tigerbeetle.yml
 
 tasks:
-  sync:
+  default:
     cmds:
-      - gum spin --title "Syncing Taskfile... (Hway)" -- rclone copy ./Hway.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced Hway.yml to r2:taskfiles"
-      - gum spin --title "Syncing Taskfile... (IPFS)" -- rclone copy ./IPFS.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced IPFS.yml to r2:taskfiles"
-      - gum spin --title "Syncing Taskfile... (Postgres)" -- rclone copy ./Postgres.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced Postgres.yml to r2:taskfiles"
-      - gum spin --title "Syncing Taskfile... (Sonrd)" -- rclone copy ./Sonrd.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced Sonrd.yml to r2:taskfiles"
-      - gum spin --title "Syncing Taskfile... (Synapse)" -- rclone copy ./Synapse.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced Synapse.yml to r2:taskfiles"
-      - gum spin --title "Syncing Taskfile... (TigerBeetle)" -- rclone copy ./TigerBeetle.yml "r2:taskfiles"
-      - gum log --structured --level debug --time rfc822 "Synced TigerBeetle.yml to r2:taskfiles"
-    silent: true
-
+      - task: task -l
