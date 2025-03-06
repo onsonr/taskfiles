@@ -16,16 +16,17 @@ Add the following to the `Taskfile.yml` file at the root of your repository:
 
 ```yaml
 includes:
-  buf: .github/taskfiles/Taskfile.buf.yml
-  bun: .github/taskfiles/Taskfile.bun.yml
-  docker: .github/taskfiles/Taskfile.docker.yml
-  dokku: .github/taskfiles/Taskfile.dokku.yml
-  doppler: .github/taskfiles/Taskfile.doppler.yml
-  gh: .github/taskfiles/Taskfile.gh.yml
-  go: .github/taskfiles/Taskfile.go.yml
-  goreleaser: .github/taskfiles/Taskfile.goreleaser.yml
-  log: .github/taskfiles/Taskfile.log.yml
-  pkl: .github/taskfiles/Taskfile.pkl.yml
-  templ: .github/taskfiles/Taskfile.templ.yaml
-  wrangler: .github/taskfiles/Taskfile.wrangler.yml
+  buf: .github/taskfiles/Buf.yml
+  bun: .github/taskfiles/Bun.yml
+  docker: .github/taskfiles/Docker.yml
+  dokku: .github/taskfiles/Dokku.yml
+  doppler: .github/taskfiles/Doppler.yml
+  gh: .github/taskfiles/Gh.yml
+  go: .github/taskfiles/Go.yml
+  goreleaser: .github/taskfiles/Goreleaser.yml
+  log: .github/taskfiles/Log.yml
+  pkl: .github/taskfiles/Pkl.yml
+  templ: .github/taskfiles/Templ.yaml
+  wrangler: .github/taskfiles/Wrangler.yml
+
 ```

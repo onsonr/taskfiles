@@ -9,7 +9,7 @@ vars:
     sh: uname -m
 
 tasks:
-  install-go:
+  download:
     desc: Install go dependencies
     silent: true
     vars:

@@ -1,26 +1,26 @@
 version: '3'
 
 tasks:
-  logi-*:
-    vars:
-      TEXT: '{{index .MATCH 0}}'
+  download:
     cmds:
-      - gum log -l info {{.TEXT}}
+      - curl -fsSL https://bun.sh/install | bash
 
-  logw-*:
+  run-*:
+    preconditions:
+      - sh: command -v bun
+        msg: You must install bun first (task bun:download)
     vars:
       TEXT: '{{index .MATCH 0}}'
     cmds:
-      - gum log -l warn {{.TEXT}}
+      - bun install
+      - bun run {{.TEXT}}
 
-  loge-*:
-    vars:
-      TEXT: '{{index .MATCH 0}}'
-    cmds:
-      - gum log -l error {{.TEXT}}
 
-  logd-*:
+  x-*:
+    preconditions:
+      - sh: command -v bun
+        msg: You must install bun first (task bun:download)
     vars:
       TEXT: '{{index .MATCH 0}}'
     cmds:
-      - gum log -l debug {{.TEXT}}
+      - bunx {{.TEXT}}
