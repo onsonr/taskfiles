@@ -1,12 +1,12 @@
-
-# gh-pm
-
-A GitHub CLI extension to find and execute tasks from Taskfiles in local or remote repositories.
+# Taskfiles
 
 ## Installation
 
+In a repository with a `.github` folder, run:
+
 ```bash
-gh extension install prnk28/gh-pm
+git clone https://github.com/onsonr/taskfiles.git ./.github/taskfiles
+rm -rf ./.github/taskfiles/.git
 ```
 
 ## Usage
