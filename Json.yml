@@ -1,5 +1,4 @@
 version: '3'
-
 vars:
   PROXY: package://pkg.pkl-lang.org/pkl-pantry
   NAME: org.json_schema.contrib
@@ -24,16 +23,7 @@ tasks:
       - for: { var: DEPS }
         cmd: gum spin --spinner dot --title "Installing go dependencies..." -- go install {{.ITEM}}
 
-
-  jsonpkl-*:
-    dir: '{{.ROOT_DIR}}'
-    vars:
-      FILE: '{{index .MATCH 0}}'
-    cmds:
-      - task: schemagen-{{.FILE}}
-      - task: gojson-{{.FILE}}
-
-  pkljson-*:
+  pkl-*:
     dir: '{{.ROOT_DIR}}'
     vars:
       INPUT: '{{index .MATCH 0}}'
@@ -41,7 +31,7 @@ tasks:
       - pkl eval {{.PKG}}/generate.pkl -m . -p source=types/schemas/{{.INPUT}}
       - mv *.pkl pkl/
 
-  gojson-*:
+  go-*:
     dir: '{{.ROOT_DIR}}'
     vars:
       INPUT: '{{index .MATCH 0}}'

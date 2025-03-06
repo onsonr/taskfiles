@@ -21,6 +21,7 @@ includes:
   docker: .github/taskfiles/Docker.yml
   dokku: .github/taskfiles/Dokku.yml
   doppler: .github/taskfiles/Doppler.yml
+  genesis: .github/taskfiles/Genesis.yml
   gh: .github/taskfiles/Gh.yml
   go: .github/taskfiles/Go.yml
   goreleaser: .github/taskfiles/Goreleaser.yml
@@ -28,5 +29,4 @@ includes:
   pkl: .github/taskfiles/Pkl.yml
   templ: .github/taskfiles/Templ.yaml
   wrangler: .github/taskfiles/Wrangler.yml
-
 ```

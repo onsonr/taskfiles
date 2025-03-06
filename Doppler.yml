@@ -1,45 +1,44 @@
 version: "3"
 
 vars:
-  GOPATH:
-    sh: go env GOPATH
-  BIN_DIR: "{{.GOPATH}}/bin"
-  OS:
-    sh: uname -s
-  ARCH:
-    sh: uname -m
+  DOPPLER_TOKEN:
+    sh: echo $DOPPLER_TOKEN
+
+env:
+  DOPPLER_TOKEN: '{{.DOPPLER_TOKEN}}'
 
 tasks:
   download:
-    desc: Install go dependencies
-    silent: true
+    desc: Install doppler
+    cmds:
+      - platforms: [darwin]
+        cmd: |
+          brew install gnupg
+          brew install dopplerhq/cli/doppler
+      - platforms: [linux]
+        cmd: |
+          sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+          curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | sudo gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | sudo tee /etc/apt/sources.list.d/doppler-cli.list
+          sudo apt-get update && sudo apt-get install doppler
+  get-*:
+    desc: Get a Secret from Doppler
     vars:
-      DEPS:
-        [
-          "github.com/apple/pkl-go/cmd/pkl-gen-go@latest",
-          "github.com/sqlc-dev/sqlc/cmd/sqlc@latest",
-          "github.com/goreleaser/goreleaser/v2@latest",
-          "github.com/a-h/templ/cmd/templ@latest",
-        ]
+      KEY: '{{index .MATCH 0}}'
     cmds:
-      - for: { var: DEPS }
-        cmd: gum spin --spinner dot --title "Installing go dependencies..." -- go install {{.ITEM}}
+      - doppler get {{.KEY}}
 
-
-  init-pkl:
-    desc: Configure synapse homeserver with PKL
-    silent: true
+  set-*-*:
+    desc: Set a Secret in Doppler
+    vars:
+      KEY: '{{index .MATCH 0}}'
+      VALUE: '{{index .MATCH 1}}'
     cmds:
-      - pkl eval pkl/matrix.net/Homeserver.pkl -f yaml -o deploy/conf/synapse/homeserver.yaml
-    env:
-      MATRIX_CLIENT_NAME: sonr.id
-      MATRIX_SERVER_NAME: sonr.id
-      MATRIX_SERVER_URL: http://localhost:8008
-      MATRIX_SLIDING_SYNC_PROXY: http://localhost:8008
-      MATRIX_PSQL_CONN: postgresql://matrixhs_user:matrixhs_password123@localhost:5432/sonr
-      MATRIX_REGISTRATION_SHARED_SECRET: secret
-      MATRIX_ENABLE_RECATCHA: false
-      MATRIX_RECATCHA_PUBLIC_KEY: ""
-      MATRIX_RECATCHA_PRIVATE_KEY: ""
-      MATRIX_RECATCHA_BYPASS_SECRET: ""
+      - doppler set {{.KEY}} {{.VALUE}}
 
+  run:
+    desc: Run a command in the Doppler environment
+    requires:
+      vars: [CMD]
+    cmds:
+      - doppler run --command="{{.CMD}}"

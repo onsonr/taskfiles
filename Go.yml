@@ -1,34 +1,38 @@
 version: "3"
 
 vars:
-  BINARY: sonrd
-  BUILD_FLAGS: -mod=readonly -trimpath
-  BUILD_TAGS: netgo,ledger
   COMMIT:
     sh: git rev-parse HEAD
   VERSION:
     sh: git describe --tags --always
+  COSMOS_SDK: github.com/cosmos/cosmos-sdk/version
+  BUILD_FLAGS: -mod=readonly -trimpath
+  BUILD_TAGS: netgo,ledger
 
 tasks:
-  build:
-    desc: Build the sonrd binary
+  download:
+    desc: Install go dependencies
     cmds:
-      - >
-        go build 
-        {{.BUILD_FLAGS}}
-        -tags "{{.BUILD_TAGS}}"
-        -ldflags "
-        -X github.com/cosmos/cosmos-sdk/version.Name=sonr
-        -X github.com/cosmos/cosmos-sdk/version.AppName=sonrd
-        -X github.com/cosmos/cosmos-sdk/version.Version={{.VERSION}}
-        -X github.com/cosmos/cosmos-sdk/version.Commit={{.COMMIT}}
-        -X github.com/cosmos/cosmos-sdk/version.BuildTags={{.BUILD_TAGS}}
-        "
-        -o ./build/{{.BINARY}}
-        ./cmd/sonrd
-    env:
-      CGO_ENABLED: 1
-      GOARCH:
-        sh: go env GOARCH
-      GOOS:
-        sh: go env GOOS
+      - cmd: brew install go
+        platforms: [darwin]
+      - cmd: snap install go --classic
+        platforms: [linux]
+
+  build:
+    desc: Build a Go binary
+    preconditions:
+      - sh: command -v go
+        msg: You must install go first (task go:download)
+    requires:
+      vars: [MAIN, BINARY]
+    vars:
+      TAGS: '-tags "{{.BUILD_TAGS}}"'
+      OUT: '-o ./build/{{.BINARY}}'
+      LD_FLAGS: |
+        -X {{.COSMOS_SDK}}.Name=sonr 
+        -X {{.COSMOS_SDK}}.AppName=sonrd 
+        -X {{.COSMOS_SDK}}.Version={{.VERSION}} 
+        -X {{.COSMOS_SDK}}.Commit={{.COMMIT}} 
+        -X {{.COSMOS_SDK}}.BuildTags={{.BUILD_TAGS}}
+    cmds: 
+      - go build {{.BUILD_FLAGS}} {{.TAGS}} {{.LDFLAGS}} {{.OUT}} {{.MAIN}}

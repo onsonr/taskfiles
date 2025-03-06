@@ -1,0 +1,279 @@
+version: '3'
+
+vars:
+  HOME_DIR:
+    sh: echo $HOME/.sonr
+  CHAIN_ID: sonr-testnet-1
+  MONIKER: florence
+  KEYALGO: secp256k1
+  KEYRING: test
+  DENOM: snr
+  CLEAN: true
+  RPC: 26657
+  REST: 1317
+  PROFF: 6060
+  P2P: 26656
+  GRPC: 9090
+  GRPC_WEB: 9091
+  PROFF_LADDER: 6060
+  ROSETTA: 8080
+  BLOCK_TIME: 5s
+  DOCKER_NAME: sonrd_node
+  DOCKER_IMAGE: sonrd:local
+  DOCKER_FLAGS: --rm -it -v {{.HOME_DIR}}:/root/.sonr
+  DOCKER_PORTS: -p {{.RPC}}:{{.RPC}} -p {{.REST}}:{{.REST}} -p {{.PROFF}}:{{.PROFF}} -p {{.P2P}}:{{.P2P}} -p {{.GRPC}}:{{.GRPC}} -p {{.GRPC_WEB}}:{{.GRPC_WEB}} -p {{.ROSETTA}}:{{.ROSETTA}}
+  DOCKER_DETACH: --detach --name={{.DOCKER_NAME}}
+
+env:
+  IMAGE: docker run {{.DOCKER_FLAGS}} {{.DOCKER_IMAGE}}
+  BINARY: sonrd
+
+tasks:
+  reset-home:
+    desc: Resets the home directory
+    cmds:
+      - cmd: rm -rf {{.HOME_DIR}} && echo "Removed {{.HOME_DIR}}"
+    silent: true
+
+  init-home:
+    desc: Initializes the home directory
+    cmds:
+      - sonrd init {{.MONIKER}} --chain-id {{.CHAIN_ID}} --default-denom {{.DENOM}} --home {{.HOME_DIR}}
+      - echo "Created {{.HOME_DIR}}"
+    silent: true
+
+  setup-client:
+    desc: Sets the config variables
+    cmds:
+      - $BINARY config set client chain-id {{.CHAIN_ID}}
+      - $BINARY config set client keyring-backend {{.KEYRING}}
+
+  setup-accounts:
+    cmds:
+      - task: add-key
+        vars:
+          KEY: alice
+          MNEMONIC: morning tongue bachelor lunar logic sand position lawn loud skate buzz attack sign will loop people furnace bunker rally claw dilemma salad state spot
+      - task: add-key
+        vars:
+          KEY: faucet
+          MNEMONIC: blur mention topple matrix quiz movie produce rebuild settle drama dolphin chat spirit garage matrix mesh dutch visual beyond bounce prefer stem satisfy news
+      - task: add-key
+        vars:
+          KEY: dev
+          MNEMONIC: stone rough core mouse equal cradle shock cause afraid hero forget enforce fortune brass outer age ordinary draw organ route save super what phrase
+      - task: add-key
+        vars:
+          KEY: testauth
+          MNEMONIC: raw current gap detect slide proof magic earn attitude clog problem discover check impose scare okay pill three pumpkin bundle mercy same surprise wool
+
+  setup-genesis:
+    desc: Update the genesis file with the given query
+    requires:
+        vars: [denom]
+    cmds:
+      - task: apply-jq
+        vars:
+          query: '.consensus_params["block"]["max_gas"]="100000000"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["gov"]["params"]["min_deposit"]=[{"denom":"{{.denom}}","amount":"1000000"}]'
+      - task: apply-jq
+        vars:
+          query: '.app_state["gov"]["params"]["voting_period"]="30s"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["gov"]["params"]["expedited_voting_period"]="15s"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["staking"]["params"]["bond_denom"]="{{.denom}}"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["staking"]["params"]["min_commission_rate"]="0.050000000000000000"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["mint"]["params"]["mint_denom"]="{{.denom}}"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["crisis"]["constant_fee"]={"denom":"{{.denom}}","amount":"1000"}'
+      - task: apply-jq
+        vars:
+          query: '.consensus["params"]["abci"]["vote_extensions_enable_height"]="1"'
+      - task: apply-jq
+        vars:
+          query: '.app_state["tokenfactory"]["params"]["denom_creation_fee"]=[]'
+      - task: apply-jq
+        vars:
+          query: '.app_state["tokenfactory"]["params"]["denom_creation_gas_consume"]=100000'
+
+  create-gentx:
+    desc: Create a gentx for the given key
+    requires:
+      vars: [KEY, AMOUNT]
+    cmds:
+      - task: add-genesis-account
+        vars:
+          KEY: alice
+          AMOUNT: 100000000coin,200000000devcoin,900000000points,300000000devpoints
+      - task: add-genesis-account
+        vars:
+          KEY: faucet
+          AMOUNT: 100000000coin,200000000devcoin,900000000points,300000000devpoints
+      - task: add-genesis-account
+        vars:
+          KEY: dev
+          AMOUNT: 100000000coin,200000000devcoin,900000000points,300000000devpoints
+      - task: add-genesis-account
+        vars:
+          KEY: testauth
+          AMOUNT: 1coin
+        silent: true
+      - $BINARY genesis gentx {{.KEY}} {{.AMOUNT}} --keyring-backend {{.KEYRING}} --chain-id {{.CHAIN_ID}}
+      - $BINARY genesis collect-gentxs
+      - $BINARY genesis validate-genesis
+    
+  setup-app:
+    desc: Initializes the testnet and configures all network settings
+    silent: true
+    vars:
+      HOME_DIR: '{{.HOME_DIR | default "$HOME"}}'
+      RPC: '{{.RPC | default "26657"}}'
+      REST: '{{.REST | default "1317"}}'
+      PROFF: '{{.PROFF | default "6060"}}'
+      P2P: '{{.P2P | default "26656"}}'
+      GRPC: '{{.GRPC | default "9090"}}'
+      GRPC_WEB: '{{.GRPC_WEB | default "9091"}}'
+      ROSETTA: '{{.ROSETTA | default "8080"}}'
+      BLOCK_TIME: '{{.BLOCK_TIME | default "5s"}}'
+    cmds:
+      - task: sed-replace
+        vars:
+          FIND: 'laddr = "tcp:\/\/127.0.0.1:26657"'
+          REPLACE: 'laddr = "tcp:\/\/0.0.0.0:{{.RPC}}"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'cors_allowed_origins = \[\]'
+          REPLACE: 'cors_allowed_origins = \["*"\]'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'address = "tcp:\/\/localhost:1317"'
+          REPLACE: 'address = "tcp:\/\/0.0.0.0:{{.REST}}"'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'enable = false'
+          REPLACE: 'enable = true'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'enabled-unsafe-cors = false'
+          REPLACE: 'enabled-unsafe-cors = true'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'pprof_laddr = "localhost:6060"'
+          REPLACE: 'pprof_laddr = "localhost:{{.PROFF}}"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'laddr = "tcp:\/\/0.0.0.0:26656"'
+          REPLACE: 'laddr = "tcp:\/\/0.0.0.0:{{.P2P}}"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'address = "localhost:9090"'
+          REPLACE: 'address = "0.0.0.0:{{.GRPC}}"'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'address = "localhost:9091"'
+          REPLACE: 'address = "0.0.0.0:{{.GRPC_WEB}}"'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'address = ":8080"'
+          REPLACE: 'address = "0.0.0.0:{{.ROSETTA}}"'
+          FILE: '{{.HOME_DIR}}/config/app.toml'
+      - task: sed-replace
+        vars:
+          FIND: 'timeout_commit = "5s"'
+          REPLACE: 'timeout_commit = "{{.BLOCK_TIME}}"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      - echo "Node configuration completed with custom ports and settings"
+
+  setup-indexer:
+    desc: Configure PostgreSQL connection for transaction indexing
+    vars:
+      HOME_DIR: '{{.HOME_DIR | default "$HOME"}}'
+      PSQL_HOST: '{{.PSQL_HOST | default "localhost"}}'
+      PSQL_PORT: '{{.PSQL_PORT | default "5432"}}'
+      PSQL_USER: '{{.PSQL_USER | default "postgres"}}'
+      PSQL_PASSWORD: '{{.PSQL_PASSWORD | default "password"}}'
+      PSQL_DB: '{{.PSQL_DB | default "postgres"}}'
+    preconditions:
+      - sh: test -f "{{.HOME_DIR}}/config/config.toml"
+        msg: "Error: config.toml not found in {{.HOME_DIR}}/config"
+    cmds:
+      # Change indexer from kv to psql
+      - task: sed-replace
+        vars:
+          FIND: 'indexer = "kv"'
+          REPLACE: 'indexer = "psql"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      
+      # Set PostgreSQL connection string
+      - task: sed-replace
+        vars:
+          FIND: 'psql-conn = ""'
+          REPLACE: 'psql-conn = "postgres:\/\/{{.PSQL_USER}}:{{.PSQL_PASSWORD}}@{{.PSQL_HOST}}:{{.PSQL_PORT}}\/{{.PSQL_DB}}"'
+          FILE: '{{.HOME_DIR}}/config/config.toml'
+      
+      - echo "PostgreSQL indexer configured with connection to {{.PSQL_HOST}}:{{.PSQL_PORT}}"
+    silent: true
+
+
+  add-key:
+    requires:
+      vars: [KEY, MNEMONIC]
+    cmds:
+      - $IMAGE echo {{.MNEMONIC}} | sonrd keys add {{.KEY}} --keyring-backend {{.KEYRING}} --algo {{.KEYALGO}} --recover
+
+  add-genesis-account:
+    requires:
+      vars: [KEY, AMOUNT]
+    cmds:
+      - $BINARY genesis add-genesis-account {{.KEY}} {{.AMOUNT}} --keyring-backend {{.KEYRING}}
+
+  apply-jq:
+    requires:
+      vars: [query]
+    cmds:
+      - |
+        echo "applying: {{.query}}"
+        cat {{.HOME_DIR}}/config/genesis.json | jq '{{.query}}' > {{.HOME_DIR}}/config/tmp_genesis.json && mv {{.HOME_DIR}}/config/tmp_genesis.json {{.HOME_DIR}}/config/genesis.json
+
+  update-test-genesis:
+    requires:
+      vars: [QUERY]
+    cmds:
+      - cat {{.HOME_DIR}}/config/genesis.json | jq "{{.QUERY}}" > {{.HOME_DIR}}/config/tmp_genesis.json && mv {{.HOME_DIR}}/config/tmp_genesis.json {{.HOME_DIR}}/config/genesis.json
+  
+  sed-replace:
+    silent: true
+    requires:
+      vars: [FIND, REPLACE, FILE]
+    preconditions:
+      - sh: test -f "{{.FILE}}"
+        msg: "Error: File {{.FILE}} does not exist"
+    cmds:
+      - cp "{{.FILE}}" "{{.FILE}}.bak"
+      - |
+          COUNT_BEFORE=$(grep -c "{{.FIND}}" "{{.FILE}}" 2>/dev/null || echo 0)
+          sed -i -e 's/{{.FIND}}/{{.REPLACE}}/g' "{{.FILE}}"
+          COUNT_AFTER=$(grep -c "{{.REPLACE}}" "{{.FILE}}" 2>/dev/null || echo 0)
+          if [ "$COUNT_BEFORE" -gt 0 ]; then
+            echo "Replacement completed: $COUNT_BEFORE occurrence(s) replaced"
+          fi
+

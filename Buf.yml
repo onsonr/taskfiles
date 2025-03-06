@@ -12,18 +12,31 @@ vars:
     sh: uname -m
 
 tasks:
-  proto:
+  download:
+    desc: Download and install buf
+    silent: true
+    preconditions:
+      - sh: command -v go
+        msg: You must install go first (task go:download)
+    cmds:
+      - cmd: brew install bufbuild/buf/buf
+        platforms: [darwin]
+      - cmd: gum spin --spinner dot --title "Installing buf..." -- go install github.com/bufbuild/buf/cmd/buf@latest
+        platforms: [linux]
+
+  build:
     desc: Generate proto files
     silent: true
-    cmd: gum spin --spinner dot --title "Generating Protobufs..." -- make proto-gen
+    dir: '{{.ROOT_DIR}}/proto'
+    cmd: buf build
 
-  sqlc:
+  mod-update:
     desc: Generate SQLC files
     silent: true
     cmds:
       - gum spin --spinner dot --title "Generating SQLC..." -- sqlc generate -f internal/database/sqlc.yaml
 
-  templ:
+  push:
     desc: Generate templ files
     silent: true
     cmd: gum spin --spinner dot --title "Generating Templ..." -- templ generate
