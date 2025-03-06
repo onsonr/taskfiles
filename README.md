@@ -25,6 +25,7 @@ includes:
   gh: .github/taskfiles/Gh.yml
   go: .github/taskfiles/Go.yml
   goreleaser: .github/taskfiles/Goreleaser.yml
+  json: .github/taskfiles/Json.yml
   log: .github/taskfiles/Log.yml
   pkl: .github/taskfiles/Pkl.yml
   templ: .github/taskfiles/Templ.yaml
